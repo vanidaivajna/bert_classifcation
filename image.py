@@ -1,29 +1,23 @@
-import multiprocessing
-from tqdm import tqdm
+def compute(self):
+    """
+    To compute the characteristic features of image block
+    :return: None
+    """
+    print("Step 2 of 4: Computing feature vectors")
 
-def process_block(imageData, imageGrayscale, imageBlockRGB, i, j, blockDimension, isThisRGBImage):
-    imageBlockGrayscale = imageData.crop((i, j, i + blockDimension, j + blockDimension))
-    imageBlock = Blocks.Blocks(imageBlockGrayscale, imageBlockRGB, i, j, blockDimension)
-    return imageBlock.computeBlock()
+    image_width_overlap = self.image_width - self.block_dimension
+    image_height_overlap = self.image_height - self.block_dimension
 
-def process_image(imageData, imageGrayscale, blockDimension, isThisRGBImage):
-    imageWidthOverlap = imageData.width - blockDimension
-    imageHeightOverlap = imageData.height - blockDimension
-
-    featuresContainer = []
-
-    if isThisRGBImage:
-        imageBlocksRGB = [
-            imageData.crop((i, j, i + blockDimension, j + blockDimension))
-            for i in range(0, imageWidthOverlap + 1)
-            for j in range(0, imageHeightOverlap + 1)
-        ]
+    if self.is_this_rgb_image:
+        for i in range(0, image_width_overlap + 1):
+            for j in range(0, image_height_overlap + 1):
+                image_block_rgb = self.image_data.crop((i, j, i + self.block_dimension, j + self.block_dimension))
+                image_block_grayscale = self.image_grayscale.crop((i, j, i + self.block_dimension, j + self.block_dimension))
+                image_block = Blocks.Blocks(image_block_grayscale, image_block_rgb, i, j, self.block_dimension)
+                self.features_container.addBlock(image_block.computeBlock())
     else:
-        imageBlocksRGB = [None] * ((imageWidthOverlap + 1) * (imageHeightOverlap + 1))
-
-    with multiprocessing.Pool() as pool:
-        for i, j in tqdm([(i, j) for i in range(0, imageWidthOverlap + 1) for j in range(0, imageHeightOverlap + 1)], ncols=80):
-            features = pool.apply_async(process_block, (imageData, imageGrayscale, imageBlocksRGB[i*(imageHeightOverlap+1)+j], i, j, blockDimension, isThisRGBImage))
-            featuresContainer.append(features.get())
-
-    return featuresContainer
+        for i in range(image_width_overlap + 1):
+            for j in range(image_height_overlap + 1):
+                image_block_grayscale = self.image_data.crop((i, j, i + self.block_dimension, j + self.block_dimension))
+                image_block = Blocks.Blocks(image_block_grayscale, None, i, j, self.block_dimension)
+                self.features_container.addBlock(image_block.computeBlock())
